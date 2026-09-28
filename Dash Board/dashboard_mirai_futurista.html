@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#030705">
+<title>Mirai Elétricos | Command Center</title>
+
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="logo.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root {
+  --bg: #030705;
+  --bg-gradient: radial-gradient(circle at 50% 0%, rgba(0, 255, 102, 0.08) 0%, rgba(3, 7, 5, 0.98) 70%);
+  --panel-bg: rgba(10, 20, 15, 0.65);
+  --panel-border: rgba(0, 255, 102, 0.15);
+  --panel-glow: rgba(0, 255, 102, 0.05);
+  
+  --green: #00ff66;
+  --green-glow: #00ff6680;
+  --green-dim: rgba(0, 255, 102, 0.12);
+  --white: #f5fff9;
+  --text-main: #dce8e1;
+  --muted: #7e9489;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-active: rgba(0, 255, 102, 0.35);
+  --danger: #ff4757;
+  --warning: #ffa502;
+  --info: #1e90ff;
+  
+  --font-title: 'Orbitron', sans-serif;
+  --font-sub: 'Rajdhani', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  min-height: 100vh;
+  color: var(--text-main);
+  font-family: var(--font-body);
+  background: var(--bg);
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: -3;
+  background-image: 
+    linear-gradient(rgba(0, 255, 102, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 102, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  mask-image: radial-gradient(circle at 50% 30%, black 30%, transparent 80%);
+}
+
+h1, h2, h3, .brand, .kpi-value { font-family: var(--font-title); }
+.eyebrow, .meta-chip, button, .label { font-family: var(--font-sub); }
+
+#fxLayer { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: -2; }
+.fx-dot {
+  position: absolute; width: 3px; height: 3px; border-radius: 50%;
+  background: var(--green); opacity: .3;
+  box-shadow: 0 0 10px var(--green);
+  animation: floatDot var(--dur, 8s) ease-in-out infinite alternate;
+}
+@keyframes floatDot {
+  from { transform: translateY(20px); opacity: .1; }
+  to { transform: translateY(-60px); opacity: .6; }
+}
+
+.ambient-orb {
+  position: fixed; width: 600px; height: 600px; border-radius: 50%;
+  left: 50%; top: 30%; transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(0,255,102,0.08) 0%, transparent 70%);
+  filter: blur(40px); pointer-events: none; z-index: -2;
+  animation: breathe 6s ease-in-out infinite alternate;
+}
+@keyframes breathe { to { transform: translate(-50%, -50%) scale(1.15); opacity: 0.8; } }
+
+.topbar {
+  height: 76px; position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 clamp(20px, 4vw, 60px);
+  background: rgba(3, 7, 5, 0.75);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.brand { display: flex; align-items: center; gap: 14px; text-decoration: none; }
+.logo-img--nav { height: 36px; width: auto; object-fit: contain; }
+.brand-tag {
+  font-size: 0.75rem; letter-spacing: 3px; font-weight: 800;
+  padding-left: 14px; border-left: 1px solid var(--line-active);
+}
+.neon-text { color: var(--green); text-shadow: 0 0 12px var(--green-glow); }
+
+.status-pill {
+  display: flex; align-items: center; gap: 8px; padding: 6px 14px;
+  border: 1px solid var(--panel-border); background: rgba(0, 255, 102, 0.03);
+  border-radius: 20px; font-size: 0.75rem; letter-spacing: 1.5px;
+  text-transform: uppercase; font-family: var(--font-sub); font-weight: 600;
+}
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+  box-shadow: 0 0 10px var(--green); animation: pulse 1.8s infinite;
+}
+.status-dot.off { background: var(--danger); box-shadow: 0 0 10px var(--danger); animation: none; }
+@keyframes pulse { 50% { opacity: 0.3; transform: scale(0.75); } }
+
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid var(--panel-border); background: rgba(10, 20, 15, 0.6);
+  color: var(--text-main); border-radius: 8px; padding: 10px 18px; cursor: pointer;
+  transition: all 0.3s ease; font-weight: 600; font-size: 0.85rem;
+}
+.icon-btn:hover {
+  border-color: var(--green); color: var(--green);
+  box-shadow: 0 0 20px rgba(0, 255, 102, 0.15); transform: translateY(-2px);
+}
+.icon-btn svg { width: 16px; height: 16px; }
+
+.login-wrap {
+  min-height: calc(100vh - 76px); display: grid; place-items: center;
+  padding: 40px 20px; position: relative; z-index: 2;
+}
+.login-card {
+  width: min(440px, 100%); padding: 40px; border-radius: 16px;
+  border: 1px solid var(--panel-border); background: var(--panel-bg);
+  backdrop-filter: blur(24px); box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  animation: cardIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes cardIn { from { opacity: 0; transform: translateY(20px); } }
+
+.login-logo { text-align: center; margin-bottom: 24px; }
+.login-logo img { max-width: 180px; height: auto; filter: drop-shadow(0 0 15px rgba(0,255,102,0.2)); }
+.login-head h2 { font-size: 1.5rem; letter-spacing: 1px; text-align: center; margin-top: 6px; }
+.login-head p { color: var(--muted); font-size: 0.85rem; margin: 8px 0 28px; text-align: center; }
+
+.eyebrow {
+  display: flex; align-items: center; gap: 8px; font-size: 0.7rem;
+  letter-spacing: 2px; color: var(--green); text-transform: uppercase; font-weight: 700;
+}
+.login-head .eyebrow { justify-content: center; }
+
+.field { margin-bottom: 20px; }
+.field label {
+  display: block; color: var(--muted); font-size: 0.75rem; letter-spacing: 1.5px;
+  font-weight: 700; margin-bottom: 8px; text-transform: uppercase;
+}
+.field input, .search-input, .select-custom {
+  width: 100%; height: 48px; padding: 0 16px; border-radius: 8px;
+  border: 1px solid var(--line); background: rgba(0, 0, 0, 0.4);
+  color: #fff; outline: none; transition: 0.25s; font-family: var(--font-body);
+}
+.field input:focus, .search-input:focus, .select-custom:focus {
+  border-color: var(--green); box-shadow: 0 0 15px rgba(0, 255, 102, 0.15);
+}
+
+.btn-neon {
+  width: 100%; border: 0; padding: 14px; border-radius: 8px;
+  background: var(--green); color: #020604; font-family: var(--font-title);
+  font-weight: 800; font-size: 0.8rem; letter-spacing: 1px; cursor: pointer;
+  transition: 0.3s; box-shadow: 0 0 25px rgba(0, 255, 102, 0.25);
+}
+.btn-neon:hover { transform: translateY(-2px); box-shadow: 0 0 35px rgba(0, 255, 102, 0.4); }
+.login-error {
+  display: none; color: var(--danger); background: rgba(255, 71, 87, 0.1);
+  border: 1px solid rgba(255, 71, 87, 0.3); padding: 12px; border-radius: 8px;
+  font-size: 0.8rem; margin-bottom: 20px; text-align: center;
+}
+.login-error.show { display: block; }
+.login-hint { font-size: 0.7rem; color: var(--muted); text-align: center; margin-top: 20px; }
+
+#dashboard { display: none; max-width: 1440px; margin: 0 auto; padding: 40px clamp(20px, 4vw, 60px) 80px; }
+#dashboard.show { display: block; animation: cardIn 0.5s ease both; }
+
+.dash-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 30px; }
+.dash-head h1 { font-size: clamp(1.6rem, 3vw, 2.4rem); letter-spacing: 1px; margin-top: 6px; }
+.dash-head .sub { color: var(--muted); font-size: 0.9rem; }
+
+.command-hero {
+  border-radius: 16px; border: 1px solid var(--panel-border);
+  background: var(--panel-bg); backdrop-filter: blur(20px);
+  padding: 32px; margin-bottom: 24px; position: relative; overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+}
+.hero-grid { display: grid; grid-template-columns: 1fr auto; gap: 30px; align-items: center; }
+.hero-title { font-size: clamp(1.2rem, 2vw, 1.6rem); line-height: 1.3; margin-top: 8px; font-family: var(--font-title); }
+.hero-copy { color: var(--muted); margin-top: 10px; font-size: 0.95rem; max-width: 680px; }
+.hero-meta { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+.meta-chip {
+  padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px;
+  background: rgba(255,255,255,0.02); font-size: 0.7rem; letter-spacing: 1px; color: var(--muted);
+}
+.hero-orbit {
+  width: 120px; height: 120px; border: 1px dashed var(--line-active);
+  border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--font-title); font-size: 0.6rem; letter-spacing: 2px;
+  color: var(--green); text-align: center; animation: spin 20s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+  padding: 24px; border-radius: 14px; border: 1px solid var(--panel-border);
+  background: var(--panel-bg); backdrop-filter: blur(16px);
+  transition: all 0.3s ease;
+}
+.stat-card:hover { border-color: var(--line-active); transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,255,102,0.08); }
+.stat-card.warning { border-color: rgba(255, 165, 0, 0.3); }
+.stat-card.warning .kpi-icon { color: var(--warning); }
+.stat-card.warning .delta span { color: var(--warning); }
+
+.kpi-top { display: flex; justify-content: space-between; align-items: center; }
+.stat-card .label { font-size: 0.75rem; letter-spacing: 1.5px; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+.kpi-icon { color: var(--green); width: 20px; opacity: 0.8; }
+.stat-card .value { font-size: 2.2rem; font-weight: 800; margin-top: 12px; }
+.stat-card .delta { font-size: 0.75rem; color: var(--muted); margin-top: 8px; font-family: var(--font-sub); }
+.stat-card .delta span { color: var(--green); font-weight: 700; }
+
+.panel {
+  background: var(--panel-bg); border: 1px solid var(--panel-border);
+  border-radius: 16px; padding: 28px; margin-bottom: 24px;
+  backdrop-filter: blur(20px); box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+.panel-title { display: flex; align-items: center; gap: 10px; }
+.panel-title::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
+.panel-head h2 { font-size: 0.9rem; letter-spacing: 1.5px; font-weight: 800; text-transform: uppercase; }
+.panel-note { font-size: 0.7rem; color: var(--muted); font-family: var(--font-sub); letter-spacing: 1px; }
+
+.table-toolbar { display: flex; gap: 12px; flex-wrap: wrap; width: 100%; max-width: 600px; }
+.table-toolbar .search-input { flex: 2; }
+.table-toolbar .select-custom { flex: 1; height: 48px; background: rgba(0, 0, 0, 0.6); color: var(--text-main); cursor: pointer; }
+
+.chart-wrap { display: flex; align-items: flex-end; gap: 12px; height: 200px; padding-top: 20px; }
+.bar-col { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 8px; }
+.bar {
+  width: 100%; max-width: 36px; min-height: 4px; border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, var(--green) 0%, rgba(0, 255, 102, 0.1) 100%);
+  transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.bar-label { font-size: 0.65rem; color: var(--muted); font-family: var(--font-sub); }
+.bar-count { font-size: 0.75rem; color: var(--green); font-weight: 700; font-family: var(--font-sub); }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; }
+thead th {
+  padding: 16px 20px; color: var(--muted); background: rgba(0, 0, 0, 0.3);
+  font-size: 0.7rem; letter-spacing: 1.5px; text-transform: uppercase; font-family: var(--font-sub);
+  border-bottom: 1px solid var(--line); cursor: pointer; user-select: none;
+}
+thead th:hover { color: var(--green); }
+tbody td { padding: 14px 20px; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
+tbody tr:hover { background: rgba(0, 255, 102, 0.02); }
+tbody tr:last-child td { border-bottom: 0; }
+.wa-link { color: var(--green); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+.wa-link:hover { text-decoration: underline; }
+.empty-cell { color: var(--muted); }
+
+.status-select {
+  padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-family: var(--font-sub);
+  font-weight: 700; border: 1px solid var(--line); background: rgba(0,0,0,0.5);
+  color: var(--text-main); cursor: pointer; outline: none; transition: 0.2s;
+}
+.status-select option { background: #08110c; color: var(--text-main); }
+.status-select[data-status="Novo"] { border-color: var(--green); color: var(--green); }
+.status-select[data-status="Em Atendimento"] { border-color: var(--info); color: var(--info); }
+.status-select[data-status="Proposta Enviada"] { border-color: var(--warning); color: var(--warning); }
+.status-select[data-status="Convertido"] { border-color: #2ed573; color: #2ed573; }
+.status-select[data-status="Perdido"] { border-color: var(--danger); color: var(--danger); }
+
+.procrast-tag {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px;
+  font-size: 0.7rem; font-family: var(--font-sub); font-weight: 700; letter-spacing: 0.5px;
+}
+.procrast-tag.ok { background: rgba(0, 255, 102, 0.1); color: var(--green); border: 1px solid rgba(0,255,102,0.2); }
+.procrast-tag.warn { background: rgba(255, 165, 0, 0.15); color: var(--warning); border: 1px solid rgba(255,165,0,0.3); }
+.procrast-tag.danger { background: rgba(255, 71, 87, 0.15); color: var(--danger); border: 1px solid rgba(255,71,87,0.3); animation: pulse 2s infinite; }
+
+/* Botão de Excluir Lead */
+.btn-delete {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 6px;
+  border: 1px solid rgba(255, 71, 87, 0.3);
+  background: rgba(255, 71, 87, 0.08);
+  color: var(--danger); cursor: pointer; transition: all 0.2s ease;
+}
+.btn-delete:hover {
+  background: var(--danger); color: #fff;
+  border-color: var(--danger);
+  box-shadow: 0 0 12px rgba(255, 71, 87, 0.4);
+  transform: scale(1.05);
+}
+
+#toast {
+  position: fixed; right: 24px; bottom: 24px; z-index: 200; display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px; background: #08110c; border: 1px solid var(--green); border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(0,255,102,0.2);
+  font-size: 0.85rem; transform: translateY(40px); opacity: 0; pointer-events: none; transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#toast.show { transform: translateY(0); opacity: 1; }
+
+@media (max-width: 768px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .hero-orbit { display: none; }
+  .dash-head { flex-direction: column; align-items: flex-start; }
+  .table-toolbar { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<div id="fxLayer"></div>
+<div class="ambient-orb"></div>
+
+<header class="topbar">
+  <a href="dashboard_mirai_futurista.html" class="brand" aria-label="Mirai Veículos - Dashboard">
+    <img class="logo-img logo-img--nav" src="/assets/logo.png" alt="Mirai Veículos">
+    <span class="neon-text brand-tag">COMMAND CENTER</span>
+  </a>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="status-pill"><span class="status-dot" id="statusDot"></span><span id="statusText">Conectando</span></div>
+    <button class="icon-btn" id="logoutBtn" style="display:none"><i data-lucide="log-out"></i><span>Sair</span></button>
+  </div>
+</header>
+
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <div class="login-head">
+      <div class="login-logo"><img src="/assets/logo.png" alt="Mirai Veículos"></div>
+      <div class="eyebrow">MIRAI / SECURE ACCESS</div>
+      <h2>Centro de <span class="neon-text">Comando</span></h2>
+      <p>Conecte-se ao núcleo de inteligência da Mirai.</p>
+    </div>
+
+    <div class="login-error" id="loginError"></div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="loginEmail">E-mail</label>
+        <input id="loginEmail" type="email" autocomplete="username" placeholder="seuemail@mirai.com" required>
+      </div>
+      <div class="field">
+        <label for="loginPass">Senha</label>
+        <input id="loginPass" type="password" autocomplete="current-password" placeholder="••••••••••••" required>
+      </div>
+      <button type="submit" class="btn-neon" id="loginBtn">ACESSAR SISTEMA →</button>
+    </form>
+
+    <p class="login-hint">Acesso protegido via Supabase Auth · Ambiente Administrativo</p>
+  </div>
+</div>
+
+<main id="dashboard">
+  <div class="dash-head">
+    <div>
+      <div class="eyebrow">MIRAI / LIVE COMMAND CENTER</div>
+      <h1>Inteligência de <span class="neon-text">Leads</span></h1>
+      <div class="sub">Monitoramento operacional e tempo de resposta em tempo real</div>
+    </div>
+    <button class="icon-btn" id="exportBtn"><i data-lucide="download"></i> Exportar CSV</button>
+  </div>
+
+  <section class="command-hero">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">SYSTEM STATUS / ONLINE</div>
+        <div class="hero-title">Evite a procrastinação: <span class="neon-text">Atenda cada lead no ritmo certo.</span></div>
+        <p class="hero-copy">Gerencie o pipeline de vendas, acompanhe o tempo de espera do cliente e garanta que nenhum contato fique parado sem atendimento.</p>
+        <div class="hero-meta">
+          <span class="meta-chip">MOBILIDADE INTELIGENTE</span>
+          <span class="meta-chip">AGILIDADE DE ATENDIMENTO</span>
+          <span class="meta-chip">PERFORMANCE</span>
+        </div>
+      </div>
+      <div class="hero-orbit"><span>LIVE DATA CORE</span></div>
+    </div>
+  </section>
+
+  <section class="stats-grid">
+    <div class="stat-card">
+      <div class="kpi-top"><span class="label">Total de Leads</span><i data-lucide="database" class="kpi-icon"></i></div>
+      <div class="value" id="statTotal">–</div>
+      <div class="delta"><span>●</span> base monitorada</div>
+    </div>
+    <div class="stat-card">
+      <div class="kpi-top"><span class="label">Hoje</span><i data-lucide="sun" class="kpi-icon"></i></div>
+      <div class="value" id="statToday">–</div>
+      <div class="delta"><span>LIVE</span> entradas de hoje</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="kpi-top"><span class="label">Procrastinados / Parados</span><i data-lucide="clock" class="kpi-icon"></i></div>
+      <div class="value" id="statProcrastination">–</div>
+      <div class="delta"><span>⚠️ > 48h</span> aguardando ação</div>
+    </div>
+    <div class="stat-card">
+      <div class="kpi-top"><span class="label">Em Atendimento</span><i data-lucide="message-square" class="kpi-icon"></i></div>
+      <div class="value" id="statInService">–</div>
+      <div class="delta"><span>FUNIL</span> negociações ativas</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div class="panel-title"><h2>Fluxo de Leads</h2></div>
+      <span class="panel-note">ÚLTIMOS 14 DIAS / ENTRADAS POR DIA</span>
+    </div>
+    <div class="chart-wrap" id="chartWrap"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div class="panel-title"><h2>Base de Contatos & Gestão do Atendimento</h2></div>
+      <div class="table-toolbar">
+        <input type="text" class="search-input" id="searchInput" placeholder="Buscar por nome, telefone ou e-mail...">
+        <select class="select-custom" id="filterStatus">
+          <option value="">Todos os Status</option>
+          <option value="Novo">Novo</option>
+          <option value="Em Atendimento">Em Atendimento</option>
+          <option value="Proposta Enviada">Proposta Enviada</option>
+          <option value="Convertido">Convertido</option>
+          <option value="Perdido">Perdido</option>
+          <option value="PROCRASTINADOS">⚠️ Apenas Parados (>48h)</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-sort="nome">Nome</th>
+            <th data-sort="telefone">Telefone</th>
+            <th data-sort="status">Status</th>
+            <th data-sort="created_at">Tempo sem Ação</th>
+            <th data-sort="created_at">Recebido em</th>
+            <th style="text-align:center;">Ações</th>
+          </tr>
+        </thead>
+        <tbody id="leadsBody">
+          <tr><td colspan="6" style="text-align:center; padding: 30px;" class="empty-cell">Carregando dados...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div id="toast"><i data-lucide="bell-ring" class="neon-text"></i><span id="toastText">Novo lead recebido!</span></div>
+
+<script>
+/* =====================================================
+   SUPABASE CONFIG
+===================================================== */
+const SUPABASE_URL = "https://kzmupeaneswnveeohjjt.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6bXVwZWFuZXN3bnZlZW9oamp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2NTc2MDIsImV4cCI6MjEwNDIzMzYwMn0.U2irNJz-lySLr_-aHUbfssOSs65vDW6b6iwilLtSALA";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true }
+});
+
+/* =====================================================
+   VARIÁVEIS DE ESTADO
+===================================================== */
+let allLeads = [];
+let sortKey = "created_at";
+let sortDir = "desc";
+
+/* =====================================================
+   ELEMENTOS DOM
+===================================================== */
+const loginWrap = document.getElementById("loginWrap");
+const dashboard = document.getElementById("dashboard");
+const loginForm = document.getElementById("loginForm");
+const loginBtn = document.getElementById("loginBtn");
+const loginError = document.getElementById("loginError");
+const logoutBtn = document.getElementById("logoutBtn");
+const statusDot = document.getElementById("statusDot");
+const statusText = document.getElementById("statusText");
+const leadsBody = document.getElementById("leadsBody");
+const searchInput = document.getElementById("searchInput");
+const filterStatus = document.getElementById("filterStatus");
+const exportBtn = document.getElementById("exportBtn");
+const chartWrap = document.getElementById("chartWrap");
+const toast = document.getElementById("toast");
+const toastText = document.getElementById("toastText");
+
+/* =====================================================
+   SISTEMA DE ÁUDIO & NOTIFICAÇÕES PUSH
+===================================================== */
+function requestNotificationPermission() {
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+}
+
+function playCyberBeep() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.15);
+
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (e) {
+    console.warn("Erro ao reproduzir áudio:", e);
+  }
+}
+
+function triggerPushNotification(leadName) {
+  if ("Notification" in window && Notification.permission === "granted") {
+    new Notification("⚡ Novo Lead Recebido! | Mirai", {
+      body: `Nome: ${leadName || "Não identificado"}\nClique para ver no Command Center.`,
+      icon: "assets/icon-192.png",
+      tag: "new-lead"
+    });
+  }
+}
+
+/* =====================================================
+   FUNÇÕES GLOBAIS DE MANIPULAÇÃO DE LEADS
+===================================================== */
+async function updateLeadStatus(id, newStatus) {
+  try {
+    const { error } = await sb
+      .from("contatos")
+      .update({ status: newStatus })
+      .eq("id", id);
+
+    if (error) throw error;
+
+    allLeads = allLeads.map(l => l.id === id ? { ...l, status: newStatus } : l);
+
+    renderStats();
+    renderTable();
+    showToast(`Status atualizado para: ${newStatus}`);
+  } catch (err) {
+    console.error("Erro ao atualizar status:", err);
+    showToast("Erro ao atualizar o status no banco.");
+  }
+}
+
+async function deleteLead(id, name) {
+  const confirmMsg = `Tem certeza que deseja excluir o lead "${name || "Não identificado"}"? Esta ação não pode ser desfeita.`;
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    // Garante que o ID seja enviado no tipo correto (caso no banco seja Integer/BigInt)
+    const targetId = isNaN(id) ? id : Number(id);
+
+    const { error, count } = await sb
+      .from("contatos")
+      .delete({ count: 'exact' })
+      .eq("id", targetId);
+
+    if (error) {
+      console.error("Erro retornado pelo Supabase:", error);
+      showToast(`Erro ao excluir: ${error.message}`);
+      return;
+    }
+
+    // Atualiza o estado local imediatamente
+    allLeads = allLeads.filter(l => String(l.id) !== String(id));
+
+    // Recalcula a interface
+    renderStats();
+    renderChart();
+    renderTable();
+    showToast(`Lead "${name || "removido"}" excluído com sucesso.`);
+
+  } catch (err) {
+    console.error("Erro inesperado ao excluir lead:", err);
+    showToast("Erro interno ao tentar excluir o lead.");
+  }
+}
+
+function getFilteredLeads() {
+  const term = searchInput.value.trim().toLowerCase();
+  const selectedStatus = filterStatus.value;
+  const now = new Date();
+  const hours48InMs = 48 * 60 * 60 * 1000;
+
+  return allLeads.filter(l => {
+    const matchesTerm = !term || 
+      (l.nome || "").toLowerCase().includes(term) ||
+      (l.telefone || "").toLowerCase().includes(term) ||
+      (l.email || "").toLowerCase().includes(term);
+
+    let matchesStatus = true;
+
+    if (selectedStatus === "PROCRASTINADOS") {
+      const diffMs = now - new Date(l.created_at);
+      matchesStatus = (l.status === "Novo" || l.status === "Em Atendimento") && (diffMs > hours48InMs);
+    } else if (selectedStatus !== "") {
+      matchesStatus = l.status === selectedStatus;
+    }
+
+    return matchesTerm && matchesStatus;
+  });
+}
+
+function renderTable() {
+  let rows = getFilteredLeads();
+
+  rows.sort((a, b) => {
+    let va = a[sortKey] || "";
+    let vb = b[sortKey] || "";
+    if (sortKey === "created_at") { va = new Date(va).getTime(); vb = new Date(vb).getTime(); }
+    if (va < vb) return sortDir === "asc" ? -1 : 1;
+    if (va > vb) return sortDir === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  if (rows.length === 0) {
+    leadsBody.innerHTML = `<tr><td colspan="6" class="empty-cell" style="text-align:center; padding:30px;">Nenhum lead localizado.</td></tr>`;
+    return;
+  }
+
+  leadsBody.innerHTML = rows.map(l => {
+    const dateStr = new Date(l.created_at).toLocaleString("pt-BR", { 
+      day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" 
+    });
+    const waNumber = (l.telefone || "").replace(/\D/g, "");
+    const statusVal = l.status || "Novo";
+    const leadNameEscaped = escapeHtml(l.nome || "Lead");
+
+    return `
+      <tr>
+        <td><strong>${escapeHtml(l.nome) || "<span class='empty-cell'>—</span>"}</strong></td>
+        <td>
+          ${waNumber
+            ? `<a class="wa-link" href="https://wa.me/55${waNumber}" target="_blank" rel="noopener noreferrer"><i data-lucide="message-circle" style="width:14px;height:14px;"></i> ${escapeHtml(l.telefone)}</a>`
+            : "<span class='empty-cell'>—</span>"}
+        </td>
+        <td>
+          <select class="status-select" data-status="${statusVal}" onchange="updateLeadStatus('${l.id}', this.value)">
+            <option value="Novo" ${statusVal === "Novo" ? "selected" : ""}>🟢 Novo</option>
+            <option value="Em Atendimento" ${statusVal === "Em Atendimento" ? "selected" : ""}>🔵 Em Atendimento</option>
+            <option value="Proposta Enviada" ${statusVal === "Proposta Enviada" ? "selected" : ""}>🟡 Proposta Enviada</option>
+            <option value="Convertido" ${statusVal === "Convertido" ? "selected" : ""}>✅ Convertido</option>
+            <option value="Perdido" ${statusVal === "Perdido" ? "selected" : ""}>🔴 Perdido</option>
+          </select>
+        </td>
+        <td>${getProcrastinationBadge(l.created_at, statusVal)}</td>
+        <td>${dateStr}</td>
+        <td style="text-align:center;">
+          <button class="btn-delete" title="Excluir Lead" onclick="deleteLead('${l.id}', '${leadNameEscaped}')">
+            <i data-lucide="trash-2" style="width:15px;height:15px;"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  lucide.createIcons();
+}
+
+/* =====================================================
+   AUXILIARES
+===================================================== */
+function getProcrastinationBadge(createdAt, status) {
+  if (status === "Convertido" || status === "Perdido") {
+    return `<span class="procrast-tag ok"><i data-lucide="check-circle" style="width:12px"></i> Finalizado</span>`;
+  }
+
+  const now = new Date();
+  const created = new Date(createdAt);
+  const diffHours = Math.floor((now - created) / (1000 * 60 * 60));
+
+  if (diffHours < 24) {
+    return `<span class="procrast-tag ok"><i data-lucide="zap" style="width:12px"></i> Recente (${diffHours}h)</span>`;
+  } else if (diffHours < 48) {
+    return `<span class="procrast-tag warn"><i data-lucide="alert-circle" style="width:12px"></i> Atenção (${diffHours}h)</span>`;
+  } else {
+    const days = Math.floor(diffHours / 24);
+    return `<span class="procrast-tag danger"><i data-lucide="clock" style="width:12px"></i> Parado (${days}d)</span>`;
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return str.replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+}
+
+function showToast(text) {
+  toastText.textContent = text;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 4000);
+}
+
+function setStatus(online) {
+  statusDot.classList.toggle("off", !online);
+  statusText.textContent = online ? "AO VIVO" : "OFFLINE";
+}
+
+/* =====================================================
+   INICIALIZAÇÃO E AUTENTICAÇÃO
+===================================================== */
+(function initParticles() {
+  const layer = document.getElementById('fxLayer');
+  if(!layer) return;
+  for(let i = 0; i < 25; i++){
+    const d = document.createElement('span');
+    d.className = 'fx-dot';
+    d.style.left = (Math.random() * 100) + '%';
+    d.style.top = (Math.random() * 100) + '%';
+    d.style.setProperty('--dur', (6 + Math.random() * 6) + 's');
+    d.style.animationDelay = (-Math.random() * 8) + 's';
+    layer.appendChild(d);
+  }
+})();
+
+async function checkSession() {
+  const { data } = await sb.auth.getSession();
+  if (data.session) {
+    showDashboard();
+  } else {
+    showLogin();
+  }
+}
+
+function showLogin() {
+  loginWrap.style.display = "grid";
+  dashboard.classList.remove("show");
+  logoutBtn.style.display = "none";
+}
+
+function showDashboard() {
+  loginWrap.style.display = "none";
+  dashboard.classList.add("show");
+  logoutBtn.style.display = "inline-flex";
+  loadEverything();
+}
+
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  loginError.classList.remove("show");
+  loginBtn.disabled = true;
+  loginBtn.textContent = "ENTRANDO...";
+
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPass").value;
+
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+
+  loginBtn.disabled = false;
+  loginBtn.textContent = "ACESSAR SISTEMA →";
+
+  if (error) {
+    loginError.textContent = "Credenciais inválidas. Verifique seu e-mail e senha.";
+    loginError.classList.add("show");
+    return;
+  }
+
+  showDashboard();
+});
+
+logoutBtn.addEventListener("click", async () => {
+  await sb.auth.signOut();
+  showLogin();
+});
+
+async function loadEverything() {
+  await fetchLeads();
+  subscribeRealtime();
+}
+
+async function fetchLeads() {
+  try {
+    const { data, error } = await sb
+      .from("contatos")
+      .select("id, nome, telefone, email, created_at, status")
+      .order("created_at", { ascending: false })
+      .limit(1000);
+
+    if (error) throw error;
+
+    allLeads = (data || []).map(l => ({ ...l, status: l.status || "Novo" }));
+    setStatus(true);
+    renderStats();
+    renderChart();
+    renderTable();
+  } catch (err) {
+    console.error(err);
+    setStatus(false);
+    leadsBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color: var(--danger); padding:30px;">
+      Erro ao carregar dados. Verifique a conexão com o Supabase.
+    </td></tr>`;
+  }
+}
+
+function subscribeRealtime() {
+  requestNotificationPermission();
+
+  sb.channel("contatos-realtime")
+    .on("postgres_changes", { event: "*", schema: "public", table: "contatos" }, (payload) => {
+      if (payload.eventType === "INSERT") {
+        const newLead = { ...payload.new, status: payload.new.status || "Novo" };
+        allLeads.unshift(newLead);
+        
+        playCyberBeep();
+        triggerPushNotification(newLead.nome);
+        showToast(`Novo lead: ${newLead.nome || "Não identificado"}`);
+      } else if (payload.eventType === "DELETE") {
+        allLeads = allLeads.filter(l => l.id !== payload.old.id);
+      } else if (payload.eventType === "UPDATE") {
+        allLeads = allLeads.map(l => l.id === payload.new.id ? { ...l, ...payload.new } : l);
+      }
+      renderStats();
+      renderChart();
+      renderTable();
+    })
+    .subscribe((status) => {
+      setStatus(status === "SUBSCRIBED");
+    });
+}
+
+function renderStats() {
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const hours48InMs = 48 * 60 * 60 * 1000;
+
+  let today = 0;
+  let procrastinated = 0;
+  let inService = 0;
+
+  allLeads.forEach(l => {
+    const d = new Date(l.created_at);
+    if (d >= startToday) today++;
+    
+    const diffMs = now - d;
+    if ((l.status === "Novo" || l.status === "Em Atendimento") && diffMs > hours48InMs) {
+      procrastinated++;
+    }
+
+    if (l.status === "Em Atendimento" || l.status === "Proposta Enviada") {
+      inService++;
+    }
+  });
+
+  document.getElementById("statTotal").textContent = allLeads.length;
+  document.getElementById("statToday").textContent = today;
+  document.getElementById("statProcrastination").textContent = procrastinated;
+  document.getElementById("statInService").textContent = inService;
+}
+
+function renderChart() {
+  const days = 14;
+  const buckets = [];
+  const now = new Date();
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+    buckets.push({ date: d, count: 0 });
+  }
+
+  allLeads.forEach(l => {
+    const d = new Date(l.created_at);
+    const dd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const bucket = buckets.find(b => b.date.getTime() === dd.getTime());
+    if (bucket) bucket.count++;
+  });
+
+  const max = Math.max(1, ...buckets.map(b => b.count));
+
+  chartWrap.innerHTML = buckets.map(b => {
+    const h = Math.round((b.count / max) * 100);
+    const label = b.date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    return `
+      <div class="bar-col">
+        <span class="bar-count">${b.count > 0 ? b.count : ""}</span>
+        <div class="bar" style="height:${Math.max(h, 4)}%"></div>
+        <span class="bar-label">${label}</span>
+      </div>
+    `;
+  }).join("");
+}
+
+// Event Listeners dos Filtros
+searchInput.addEventListener("input", renderTable);
+filterStatus.addEventListener("change", renderTable);
+
+document.querySelectorAll("thead th[data-sort]").forEach(th => {
+  th.addEventListener("click", () => {
+    const key = th.dataset.sort;
+    if (sortKey === key) { sortDir = sortDir === "asc" ? "desc" : "asc"; }
+    else { sortKey = key; sortDir = "desc"; }
+    renderTable();
+  });
+});
+
+exportBtn.addEventListener("click", () => {
+  const header = ["Nome", "Telefone", "E-mail", "Status", "Recebido em"];
+  const lines = allLeads.map(l => [
+    l.nome || "",
+    l.telefone || "",
+    l.email || "",
+    l.status || "Novo",
+    new Date(l.created_at).toLocaleString("pt-BR")
+  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","));
+
+  const csv = [header.join(","), ...lines].join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `leads-mirai-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+// Inicializar aplicação
+lucide.createIcons();
+checkSession();
+</script>
+</body>
+</html>
