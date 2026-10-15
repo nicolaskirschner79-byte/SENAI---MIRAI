@@ -1,531 +1,1138 @@
-/**
- * MIRAI ELÉTRICOS - CORE SCRIPT & CYBERNETIC ANIMATIONS
- */
+/* ===== DADOS DOS PRODUTOS ===== */
 
-document.addEventListener('DOMContentLoaded', () => {
-    initLucideIcons();
-    initMobileNav();
-    initCyberCanvasBackground();
-    initTypewriterEffect();
-    init3dTiltEffect();
-    initScrollReveal();
-    initNavbarScroll();
-    initScrollProgressBar();
-    initFooterYear();
-    initTrustCounters();
-    initReviewLikeButtons();
-    initProductFilter();
+const WA = '5515998456556';
+
+const P = [
+  {
+    n: 'Mirai X-13',
+    c: 'scooter',
+    img: 'Mirai X-13 (2).jpg',
+    a: '45-50 km',
+    v: '32 km/h',
+    x: '4-6 h',
+    xl: 'Carga',
+    tag: 'Mais procurada'
+  },
+  {
+    n: 'Mirai Sport',
+    c: 'scooter',
+    img: 'mirai sport (2).jpg',
+    a: '50 km',
+    v: '32 km/h',
+    x: '5-7 h',
+    xl: 'Carga'
+  },
+  {
+    n: 'Mirai Veloster Apollo',
+    c: 'scooter',
+    img: 'mirai veloster apollo (2).jpg',
+    a: '50-60 km',
+    v: '32 km/h',
+    x: '5-7 h',
+    xl: 'Carga'
+  },
+  {
+    n: 'Mirai Scooter Pixxel',
+    c: 'scooter',
+    img: 'Mirai Scooter Pixxel (2).jpg',
+    a: '60-67 km',
+    v: '1000 W',
+    x: '180 kg',
+    xl: 'Suporta',
+    vl: 'Potência'
+  },
+  {
+    n: 'Mirai ZX6',
+    c: 'moto',
+    img: 'Mirai ZX6 (2).jpg',
+    a: '60-65 km',
+    v: '1000 W',
+    x: '170 kg',
+    xl: 'Suporta',
+    vl: 'Potência',
+    tag: 'Maior autonomia'
+  },
+  {
+    n: 'Mirai Capri',
+    c: 'moto',
+    img: 'Mirai Capri (2).jpg',
+    a: '55-60 km',
+    v: '1000 W',
+    x: '170 kg',
+    xl: 'Suporta',
+    vl: 'Potência'
+  },
+  {
+    n: 'Mirai A4',
+    c: 'moto',
+    img: 'Mirai A4 (2).jpg',
+    a: '55 km',
+    v: '1000 W',
+    x: '160 kg',
+    xl: 'Suporta',
+    vl: 'Potência'
+  },
+  {
+    n: 'Mirai Triciclo Lupy',
+    c: 'triciclo',
+    img: 'Mirai ZX6 (2).jpg',
+    a: '40-45 km',
+    v: '1000 W',
+    x: '3 lugares',
+    xl: 'Capacidade',
+    vl: 'Potência',
+    tag: 'Família'
+  }
+];
+
+const K = {
+  scooter: 'Scooter elétrica',
+  moto: 'Moto elétrica',
+  triciclo: 'Triciclo elétrico'
+};
+
+const $ = selector => document.querySelector(selector);
+
+const wa = texto =>
+  `https://wa.me/${WA}?text=${encodeURIComponent(texto)}`;
+
+
+/* ===== RENDERIZAÇÃO DOS PRODUTOS ===== */
+
+$('#grid').innerHTML = P.map(p => `
+  <article class="card" data-c="${p.c}">
+    <div class="ph">
+      <img
+        src="assets/${encodeURI(p.img)}"
+        alt="${p.n}"
+        loading="lazy"
+        onerror="this.remove()"
+      >
+
+      ${p.tag ? `<span class="tag">${p.tag}</span>` : ''}
+    </div>
+
+    <div class="cb">
+      <div>
+        <h3>${p.n}</h3>
+        <div class="kind">${K[p.c]}</div>
+      </div>
+
+      <div class="specs">
+        <div>
+          <strong>${p.a}</strong>
+          <small>Autonomia</small>
+        </div>
+
+        <div>
+          <strong>${p.v}</strong>
+          <small>${p.vl || 'Vel. máx.'}</small>
+        </div>
+
+        <div>
+          <strong>${p.x}</strong>
+          <small>${p.xl}</small>
+        </div>
+      </div>
+
+      <a
+        class="btn btn-d"
+        target="_blank"
+        rel="noopener noreferrer"
+        href="${wa(
+          'Olá! Gostaria de saber o preço do modelo ' + p.n + '.'
+        )}"
+      >
+        Consultar preço
+      </a>
+    </div>
+  </article>
+`).join('');
+
+$('#m').innerHTML =
+  '<option value="">Ainda não sei</option>' +
+  P.map(p => `<option>${p.n}</option>`).join('');
+
+
+/* ===== FILTROS DO CATÁLOGO ===== */
+
+document.querySelectorAll('.chip').forEach(botao => {
+  botao.onclick = () => {
+    document.querySelectorAll('.chip').forEach(item => {
+      item.setAttribute(
+        'aria-pressed',
+        String(item === botao)
+      );
+    });
+
+    document.querySelectorAll('.card').forEach(card => {
+      card.hidden =
+        botao.dataset.f !== 'todos' &&
+        card.dataset.c !== botao.dataset.f;
+    });
+  };
 });
 
-/* ==========================================================
-   1. INICIALIZAÇÃO DE ÍCONES
-   ========================================================== */
-function initLucideIcons() {
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+
+/* ===== MENU RESPONSIVO ===== */
+
+(() => {
+  const nav = $('#nav');
+  const button = $('#burger');
+  const menu = $('#menu');
+
+  const desktop = matchMedia('(min-width: 1101px)');
+
+  let previousOverflow = '';
+
+  function setMenu(open, restoreFocus = false) {
+    const wasOpen =
+      button.getAttribute('aria-expanded') === 'true';
+
+    nav.classList.toggle('open', open);
+
+    button.setAttribute(
+      'aria-expanded',
+      String(open)
+    );
+
+    button.setAttribute(
+      'aria-label',
+      open ? 'Fechar menu' : 'Abrir menu'
+    );
+
+    document.body.classList.toggle(
+      'menu-open',
+      open
+    );
+
+    if (open && !wasOpen) {
+      previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
     }
+
+    if (!open && wasOpen) {
+      document.body.style.overflow = previousOverflow;
+    }
+
+    if (restoreFocus) {
+      button.focus();
+    }
+  }
+
+  button.addEventListener('click', () => {
+    setMenu(
+      button.getAttribute('aria-expanded') !== 'true'
+    );
+  });
+
+  menu.addEventListener('click', event => {
+    if (event.target.closest('a')) {
+      setMenu(false);
+    }
+  });
+
+  document.addEventListener('keydown', event => {
+    if (
+      event.key === 'Escape' &&
+      button.getAttribute('aria-expanded') === 'true'
+    ) {
+      setMenu(false, true);
+    }
+  });
+
+  document.addEventListener(
+    'pointerdown',
+    event => {
+      if (!event.target.closest('header')) {
+        setMenu(false);
+      }
+    },
+    { passive: true }
+  );
+
+  document.addEventListener('focusin', event => {
+    if (!event.target.closest('header')) {
+      setMenu(false);
+    }
+  });
+
+  desktop.addEventListener('change', event => {
+    if (event.matches) {
+      setMenu(false);
+    }
+  });
+
+  setMenu(false);
+})();
+
+
+/* ===== REVEAL E CONTADORES ===== */
+
+const reduce = matchMedia(
+  '(prefers-reduced-motion: reduce)'
+).matches;
+
+const io = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+
+    entry.target.classList.add('in');
+    io.unobserve(entry.target);
+
+    if (
+      entry.target.tagName === 'H2' &&
+      !reduce
+    ) {
+      scr(entry.target);
+    }
+  });
+}, {
+  threshold: 0.15
+});
+
+document.querySelectorAll('.rv').forEach(elemento => {
+  io.observe(elemento);
+});
+
+const co = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+
+    const elemento = entry.target;
+    const destino = Number(elemento.dataset.to);
+    const inicio = performance.now();
+
+    co.unobserve(elemento);
+
+    if (reduce) {
+      elemento.textContent = destino;
+      return;
+    }
+
+    function animar(tempo) {
+      const progresso = Math.min(
+        (tempo - inicio) / 1400,
+        1
+      );
+
+      const suavizado =
+        1 - (1 - progresso) * (1 - progresso);
+
+      elemento.textContent = Math.round(
+        destino * suavizado
+      );
+
+      if (progresso < 1) {
+        requestAnimationFrame(animar);
+      }
+    }
+
+    animar(inicio);
+  });
+}, {
+  threshold: 0.6
+});
+
+document.querySelectorAll('.count').forEach(elemento => {
+  co.observe(elemento);
+});
+
+
+/* ===== CALCULADORA ===== */
+/*
+  Premissas da simulação:
+  - Energia equivalente a 12% do gasto com combustível.
+  - 2,3 kg de CO₂ por litro.
+  - Gasolina a R$ 6,20.
+*/
+
+const g = $('#gasto');
+
+const fmt = valor =>
+  valor.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    maximumFractionDigits: 0
+  });
+
+function calc() {
+  const valor = Number(g.value);
+
+  $('#gv').textContent = fmt(valor);
+
+  $('#r1').textContent = fmt(
+    valor * 0.88 * 12
+  );
+
+  $('#r2').textContent =
+    Math.round(
+      valor / 6.2 * 2.3 * 12
+    ).toLocaleString('pt-BR') + ' kg';
 }
 
-/* ==========================================================
-   2. CONTROLE DA BOTTOM NAV (MOBILE)
-   ========================================================== */
-function initMobileNav() {
-    const mobileLinks = document.querySelectorAll('.mobile-bottom-nav a');
-    mobileLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            mobileLinks.forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
-        });
+g.oninput = calc;
+calc();
+
+
+/* ===== FORMULÁRIO DO TEST RIDE ===== */
+
+const w = $('#w');
+
+w.oninput = () => {
+  const digitos = w.value
+    .replace(/\D/g, '')
+    .slice(0, 11);
+
+  if (digitos.length > 10) {
+    w.value = digitos.replace(
+      /(\d{2})(\d{5})(\d*)/,
+      '($1) $2-$3'
+    );
+  } else if (digitos.length > 6) {
+    w.value = digitos.replace(
+      /(\d{2})(\d{4})(\d*)/,
+      '($1) $2-$3'
+    );
+  } else if (digitos.length > 2) {
+    w.value = digitos.replace(
+      /(\d{2})(\d*)/,
+      '($1) $2'
+    );
+  } else {
+    w.value = digitos;
+  }
+};
+
+$('#tr').onsubmit = event => {
+  event.preventDefault();
+
+  const nome = $('#n').value.trim();
+  const digitos = w.value.replace(/\D/g, '');
+
+  $('#en').textContent =
+    nome.length < 3
+      ? 'Digite seu nome completo.'
+      : '';
+
+  $('#ew').textContent =
+    digitos.length < 10
+      ? 'Digite um WhatsApp com DDD.'
+      : '';
+
+  if (
+    nome.length < 3 ||
+    digitos.length < 10
+  ) {
+    return;
+  }
+
+  const modelo = $('#m').value;
+
+  $('#ok').classList.add('show');
+
+  const mensagem =
+    `Olá! Sou ${nome} (${w.value}) e quero agendar um test ride` +
+    (modelo ? ` do modelo ${modelo}` : '') +
+    '.';
+
+  window.open(
+    wa(mensagem),
+    '_blank',
+    'noopener'
+  );
+};
+
+
+/* ===== AMBIENT BACKGROUND MOTION ===== */
+
+(() => {
+  const canvas = $('#net');
+  const backdrop = canvas.parentElement;
+  const contexto = canvas.getContext('2d');
+
+  if (!contexto) return;
+
+  const motion = matchMedia(
+    '(prefers-reduced-motion: reduce)'
+  );
+
+  const compact = matchMedia(
+    '(max-width: 800px), (pointer: coarse)'
+  );
+
+  const mouse = {
+    x: -999,
+    y: -999
+  };
+
+  let largura = 0;
+  let altura = 0;
+  let particulas = [];
+
+  let frame = 0;
+  let ultimoTempo = 0;
+
+  let offsetX = 0;
+  let offsetY = 0;
+  let targetX = 0;
+  let targetY = 0;
+
+  function parallax(reset = false) {
+    if (
+      reset ||
+      compact.matches ||
+      motion.matches
+    ) {
+      targetX = 0;
+      targetY = 0;
+      offsetX = 0;
+      offsetY = 0;
+    } else {
+      offsetX += (targetX - offsetX) * 0.12;
+      offsetY += (targetY - offsetY) * 0.12;
+    }
+
+    backdrop.style.setProperty(
+      '--ambient-x',
+      offsetX.toFixed(2) + 'px'
+    );
+
+    backdrop.style.setProperty(
+      '--ambient-y',
+      offsetY.toFixed(2) + 'px'
+    );
+  }
+
+  function desenhar(passo = 0) {
+    contexto.clearRect(
+      0,
+      0,
+      largura,
+      altura
+    );
+
+    for (const particula of particulas) {
+      particula.x += particula.vx * passo;
+      particula.y += particula.vy * passo;
+
+      if (
+        particula.x < 0 ||
+        particula.x > largura
+      ) {
+        particula.vx *= -1;
+      }
+
+      if (
+        particula.y < 0 ||
+        particula.y > altura
+      ) {
+        particula.vy *= -1;
+      }
+
+      const dx = particula.x - mouse.x;
+      const dy = particula.y - mouse.y;
+
+      const distancia =
+        Math.hypot(dx, dy) || 1;
+
+      if (distancia < 120 && passo) {
+        particula.x +=
+          dx / distancia * 0.45 * passo;
+
+        particula.y +=
+          dy / distancia * 0.45 * passo;
+      }
+
+      contexto.fillStyle =
+        'rgba(0,255,130,.55)';
+
+      contexto.fillRect(
+        particula.x,
+        particula.y,
+        1.5,
+        1.5
+      );
+    }
+
+    for (
+      let i = 0;
+      i < particulas.length;
+      i++
+    ) {
+      for (
+        let j = i + 1;
+        j < particulas.length;
+        j++
+      ) {
+        const distancia = Math.hypot(
+          particulas[i].x - particulas[j].x,
+          particulas[i].y - particulas[j].y
+        );
+
+        if (distancia < 145) {
+          const opacidade =
+            0.16 * (1 - distancia / 145);
+
+          contexto.strokeStyle =
+            `rgba(0,255,130,${opacidade})`;
+
+          contexto.beginPath();
+
+          contexto.moveTo(
+            particulas[i].x,
+            particulas[i].y
+          );
+
+          contexto.lineTo(
+            particulas[j].x,
+            particulas[j].y
+          );
+
+          contexto.stroke();
+        }
+      }
+    }
+  }
+
+  function animar(tempo) {
+    frame = 0;
+
+    if (
+      document.hidden ||
+      motion.matches
+    ) {
+      return;
+    }
+
+    const intervalo = compact.matches
+      ? 50
+      : 33.33;
+
+    if (
+      !ultimoTempo ||
+      tempo - ultimoTempo >= intervalo
+    ) {
+      const passo = ultimoTempo
+        ? Math.min(
+            (tempo - ultimoTempo) / 16.67,
+            3
+          )
+        : 1;
+
+      ultimoTempo = tempo;
+
+      desenhar(passo);
+      parallax();
+    }
+
+    frame = requestAnimationFrame(animar);
+  }
+
+  function sincronizar() {
+    if (frame) {
+      cancelAnimationFrame(frame);
+    }
+
+    frame = 0;
+    ultimoTempo = 0;
+
+    const pausado =
+      document.hidden ||
+      motion.matches;
+
+    backdrop.classList.toggle(
+      'is-paused',
+      pausado
+    );
+
+    parallax(pausado);
+
+    if (!document.hidden) {
+      desenhar();
+
+      if (!pausado) {
+        frame = requestAnimationFrame(animar);
+      }
+    }
+  }
+
+  function redimensionar() {
+    largura =
+      canvas.clientWidth || innerWidth;
+
+    altura =
+      canvas.clientHeight || innerHeight;
+
+    const escala = Math.min(
+      window.devicePixelRatio || 1,
+      compact.matches ? 1 : 1.5
+    );
+
+    canvas.width = Math.round(
+      largura * escala
+    );
+
+    canvas.height = Math.round(
+      altura * escala
+    );
+
+    contexto.setTransform(
+      escala,
+      0,
+      0,
+      escala,
+      0,
+      0
+    );
+
+    const quantidade = Math.min(
+      compact.matches ? 18 : 44,
+      Math.floor(
+        largura * altura /
+        (compact.matches ? 32000 : 24000)
+      )
+    );
+
+    particulas = Array.from(
+      { length: quantidade },
+      () => ({
+        x: Math.random() * largura,
+        y: Math.random() * altura,
+        vx: (Math.random() - 0.5) * 0.18,
+        vy: (Math.random() - 0.5) * 0.18
+      })
+    );
+
+    sincronizar();
+  }
+
+  document.addEventListener(
+    'pointermove',
+    event => {
+      if (
+        motion.matches ||
+        compact.matches
+      ) {
+        return;
+      }
+
+      mouse.x = event.clientX;
+      mouse.y = event.clientY;
+
+      targetX =
+        (
+          Math.max(
+            0,
+            Math.min(
+              1,
+              event.clientX / largura
+            )
+          ) - 0.5
+        ) * 24;
+
+      targetY =
+        (
+          Math.max(
+            0,
+            Math.min(
+              1,
+              event.clientY / altura
+            )
+          ) - 0.5
+        ) * 18;
+    },
+    { passive: true }
+  );
+
+  document.addEventListener(
+    'pointerleave',
+    () => {
+      mouse.x = -999;
+      mouse.y = -999;
+
+      targetX = 0;
+      targetY = 0;
+    }
+  );
+
+  document.addEventListener(
+    'visibilitychange',
+    sincronizar
+  );
+
+  motion.addEventListener(
+    'change',
+    sincronizar
+  );
+
+  compact.addEventListener(
+    'change',
+    redimensionar
+  );
+
+  addEventListener(
+    'resize',
+    redimensionar,
+    { passive: true }
+  );
+
+  redimensionar();
+})();
+
+
+/* ===== ANIMAÇÃO DOS TÍTULOS ===== */
+
+document.querySelectorAll('h2.rv').forEach(titulo => {
+  titulo.setAttribute(
+    'aria-label',
+    titulo.textContent
+  );
+
+  titulo.innerHTML = titulo.textContent
+    .split(' ')
+    .map((palavra, indice) =>
+      `<span class="w" aria-hidden="true"><span style="--i:${indice}">${palavra}</span></span>`
+    )
+    .join(' ');
+});
+
+const scr = elemento =>
+  requestAnimationFrame(() => {
+    elemento.querySelectorAll('.w').forEach(palavra => {
+      palavra.classList.add('go');
     });
-}
+  });
 
-/* ==========================================================
-   3. BACKGROUND INTERATIVO: MALHA NEON / PARTÍCULAS
-   ========================================================== */
-function initCyberCanvasBackground() {
-    // Em telas de toque não há cursor de mouse, então reduzimos o custo
-    // e evitamos travar dispositivos mais fracos.
-    const isTouch = window.matchMedia('(pointer: coarse)').matches;
 
-    const canvas = document.createElement('canvas');
-    canvas.id = 'cyber-canvas';
-    document.body.appendChild(canvas);
+/* ===== BARRA DE PROGRESSO ===== */
 
-    // Estilização direta via JS para garantir cobertura total
-    Object.assign(canvas.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '100vw',
-        height: '100vh',
-        pointerEvents: 'none',
-        zIndex: '-1',
-        opacity: '0.4'
+const bar = document.createElement('div');
+
+bar.id = 'bar';
+document.body.prepend(bar);
+
+addEventListener('scroll', () => {
+  bar.style.width =
+    scrollY /
+    (
+      document.documentElement.scrollHeight -
+      innerHeight
+    ) * 100 + '%';
+}, {
+  passive: true
+});
+
+
+/* ===== EFEITOS NOS CARDS E BOTÕES ===== */
+
+if (
+  matchMedia('(pointer:fine)').matches &&
+  !reduce
+) {
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('mousemove', event => {
+      const rect = card.getBoundingClientRect();
+
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      card.style.setProperty(
+        '--mx',
+        x + 'px'
+      );
+
+      card.style.setProperty(
+        '--my',
+        y + 'px'
+      );
+
+      card.style.transform =
+        'perspective(900px) ' +
+        `rotateX(${(0.5 - y / rect.height) * 8}deg) ` +
+        `rotateY(${(x / rect.width - 0.5) * 8}deg) ` +
+        'translateY(-4px)';
     });
 
-    const ctx = canvas.getContext('2d');
-    let width, height;
-    let particles = [];
-    let mouse = { x: null, y: null, radius: 150 };
-
-    function resize() {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
-    }
-
-    window.addEventListener('resize', resize);
-
-    if (!isTouch) {
-        window.addEventListener('mousemove', (e) => {
-            mouse.x = e.clientX;
-            mouse.y = e.clientY;
-        });
-    }
-
-    class Particle {
-        constructor() {
-            this.x = Math.random() * width;
-            this.y = Math.random() * height;
-            this.vx = (Math.random() - 0.5) * 1.2;
-            this.vy = (Math.random() - 0.5) * 1.2;
-            this.size = Math.random() * 2 + 1;
-        }
-
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-
-            if (this.x < 0 || this.x > width) this.vx *= -1;
-            if (this.y < 0 || this.y > height) this.vy *= -1;
-
-            // Interação com o mouse (apenas em dispositivos com mouse)
-            if (mouse.x !== null) {
-                let dx = mouse.x - this.x;
-                let dy = mouse.y - this.y;
-                let distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < mouse.radius) {
-                    let angle = Math.atan2(dy, dx);
-                    this.x -= Math.cos(angle) * 2;
-                    this.y -= Math.sin(angle) * 2;
-                }
-            }
-        }
-
-        draw() {
-            ctx.fillStyle = '#00FF66';
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
-
-    // Popula o array de partículas conforme a densidade da tela
-    // (menos partículas em telas pequenas/dispositivos móveis)
-    function createParticles() {
-        particles = [];
-        const divisor = isTouch ? 22000 : 12000;
-        const count = Math.floor((width * height) / divisor);
-        for (let i = 0; i < count; i++) {
-            particles.push(new Particle());
-        }
-    }
-
-    function animate() {
-        ctx.clearRect(0, 0, width, height);
-
-        // Desenha linhas conectando partículas próximas
-        for (let a = 0; a < particles.length; a++) {
-            for (let b = a; b < particles.length; b++) {
-                let dx = particles[a].x - particles[b].x;
-                let dy = particles[a].y - particles[b].y;
-                let dist = Math.sqrt(dx * dx + dy * dy);
-
-                if (dist < 120) {
-                    ctx.strokeStyle = `rgba(0, 255, 102, ${1 - dist / 120})`;
-                    ctx.lineWidth = 0.5;
-                    ctx.beginPath();
-                    ctx.moveTo(particles[a].x, particles[a].y);
-                    ctx.lineTo(particles[b].x, particles[b].y);
-                    ctx.stroke();
-                }
-            }
-        }
-
-        particles.forEach(p => {
-            p.update();
-            p.draw();
-        });
-
-        requestAnimationFrame(animate);
-    }
-
-    resize();
-    createParticles();
-    animate();
-
-    // Recria as partículas com a densidade certa ao redimensionar/rotacionar a tela
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(createParticles, 200);
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = '';
     });
+  });
+
+  document.querySelectorAll('.btn-p').forEach(botao => {
+    botao.addEventListener('mousemove', event => {
+      const rect = botao.getBoundingClientRect();
+
+      const x =
+        (
+          event.clientX -
+          rect.left -
+          rect.width / 2
+        ) * 0.2;
+
+      const y =
+        (
+          event.clientY -
+          rect.top -
+          rect.height / 2
+        ) * 0.3;
+
+      botao.style.transform =
+        `translate(${x}px,${y}px)`;
+    });
+
+    botao.addEventListener('mouseleave', () => {
+      botao.style.transform = '';
+    });
+  });
 }
 
-/* ==========================================================
-   4. EFEITO DE DIGITAÇÃO (TYPEWRITER)
-   ==========================================================
 
-   Antes, o efeito era do tipo "decodificação Matrix" e disparava
-   a cada passada do mouse (mouseover) sobre o título — repetindo
-   sem parar, e ainda com um bug: como usava innerText, na primeira
-   passada ele destruía o <span class="neon-text"> interno (a
-   palavra em verde), que nunca mais voltava a ficar colorida.
+/* ===== VITRINE DE DESTAQUES ===== */
 
-   Agora o efeito é de "digitação" (estilo terminal, com cursor
-   piscando) e dispara UMA ÚNICA VEZ por carregamento de página,
-   no momento em que o título entra na tela ao rolar (mesmo padrão
-   do scroll-reveal dos cards, via IntersectionObserver + unobserve).
-   A estrutura interna do título (como a palavra destacada em
-   .neon-text) é preservada durante a digitação.
-   ========================================================== */
-function initTypewriterEffect() {
-    const targets = document.querySelectorAll('.section-title, .hero-title');
-    if (!targets.length) return;
+const FEAT = [
+  ['Mirai X-13', 'Destaque da loja'],
+  ['Mirai ZX6', 'Destaque da loja'],
+  ['Mirai Scooter Pixxel', 'Destaque da loja'],
+  ['Mirai Capri', 'Destaque da loja']
+].map(([nome, rotulo]) => ({
+  ...P.find(produto => produto.n === nome),
+  l: rotulo
+}));
 
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                typeElement(entry.target);
-                observer.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.4 });
+$('#vstage').innerHTML = FEAT.map((p, indice) => `
+  <article
+    class="sl${indice ? '' : ' on'}"
+    id="vpanel-${indice}"
+    role="group"
+    aria-roledescription="slide"
+    aria-labelledby="vtitle-${indice}"
+    aria-hidden="${!!indice}"
+    ${indice ? 'inert' : ''}
+  >
+    <div class="vphoto">
+      <span class="ghost" aria-hidden="true">
+        ${p.n.replace('Mirai ', '')}
+      </span>
 
-    targets.forEach(el => observer.observe(el));
+      <span class="vphoto-fallback">
+        Consulte fotos deste modelo pelo WhatsApp.
+      </span>
+
+      <img
+        src="assets/${encodeURI(p.img)}"
+        alt="${p.n}"
+        width="640"
+        height="420"
+        ${indice ? 'loading="lazy"' : 'fetchpriority="high"'}
+        decoding="async"
+      >
+    </div>
+
+    <div class="sinfo">
+      <div>
+        <span class="lab">${p.l}</span>
+
+        <h3 id="vtitle-${indice}">
+          ${p.n}
+        </h3>
+
+        <div class="sspec">
+          <div>
+            <strong>${p.a}</strong>
+            <small>Autonomia</small>
+          </div>
+
+          <div>
+            <strong>${p.v}</strong>
+            <small>${p.vl || 'Vel. máx.'}</small>
+          </div>
+
+          <div>
+            <strong>${p.x}</strong>
+            <small>${p.xl}</small>
+          </div>
+        </div>
+      </div>
+
+      <a
+        class="btn btn-p"
+        target="_blank"
+        rel="noopener noreferrer"
+        href="${wa(
+          'Olá! Gostaria de saber o preço e receber fotos do modelo ' +
+          p.n +
+          '.'
+        )}"
+      >
+        Consultar preço
+      </a>
+    </div>
+  </article>
+`).join('');
+
+
+/* ===== ALTERNÂNCIA AUTOMÁTICA DOS DESTAQUES ===== */
+
+const vitrine = document.querySelector('.hv');
+
+const vslides = [
+  ...vitrine.querySelectorAll('.sl')
+];
+
+const vmotion = matchMedia(
+  '(prefers-reduced-motion: reduce)'
+);
+
+let vcur = 0;
+let vvisible = true;
+let vhover = false;
+let vfocus = false;
+let vtimer = 0;
+
+const vgo = numero => {
+  vcur = (
+    numero + FEAT.length
+  ) % FEAT.length;
+
+  $('#vc').textContent =
+    `0${vcur + 1} / 0${FEAT.length}`;
+
+  $('#vc').setAttribute(
+    'aria-label',
+    `Destaque ${vcur + 1} de ${FEAT.length}`
+  );
+
+  vslides.forEach((slide, indice) => {
+    const ativo = indice === vcur;
+
+    slide.classList.toggle(
+      'on',
+      ativo
+    );
+
+    slide.setAttribute(
+      'aria-hidden',
+      String(!ativo)
+    );
+
+    slide.inert = !ativo;
+
+    slide.querySelector('a').tabIndex =
+      ativo ? 0 : -1;
+  });
+};
+
+const vsync = () => {
+  if (vtimer) {
+    clearTimeout(vtimer);
+    vtimer = 0;
+  }
+
+  const reproduzindo =
+    !vmotion.matches &&
+    !document.hidden &&
+    vvisible &&
+    !vhover &&
+    !vfocus;
+
+  vitrine.dataset.autoplay =
+    reproduzindo ? 'playing' : 'paused';
+
+  if (reproduzindo) {
+    vtimer = setTimeout(() => {
+      vtimer = 0;
+      vgo(vcur + 1);
+      vsync();
+    }, 6000);
+  }
+};
+
+vitrine.addEventListener('mouseenter', () => {
+  vhover = true;
+  vsync();
+});
+
+vitrine.addEventListener('mouseleave', () => {
+  vhover = false;
+  vsync();
+});
+
+vitrine.addEventListener('focusin', () => {
+  vfocus = true;
+  vsync();
+});
+
+vitrine.addEventListener('focusout', event => {
+  vfocus = Boolean(
+    event.relatedTarget &&
+    vitrine.contains(event.relatedTarget)
+  );
+
+  vsync();
+});
+
+document.addEventListener(
+  'visibilitychange',
+  vsync
+);
+
+vmotion.addEventListener(
+  'change',
+  vsync
+);
+
+if ('IntersectionObserver' in window) {
+  const vobserver = new IntersectionObserver(entries => {
+    vvisible = entries[0].isIntersecting;
+    vsync();
+  }, {
+    threshold: 0.05
+  });
+
+  vobserver.observe(vitrine);
 }
 
-// Converte o conteúdo do título em uma lista de "unidades" (1 por
-// caractere), guardando a classe do elemento em que cada caractere
-// estava (ex.: "neon-text"), para poder reconstruir a formatação
-// original enquanto o texto é digitado aos poucos.
-function parseTypedUnits(element) {
-    const units = [];
 
-    function walk(node, cls) {
-        if (node.nodeType === Node.TEXT_NODE) {
-            for (const ch of node.textContent) units.push({ ch, cls });
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-            const nodeCls = node.className ? node.className : cls;
-            node.childNodes.forEach(child => walk(child, nodeCls));
-        }
+/* ===== CARREGAMENTO DAS IMAGENS DOS DESTAQUES ===== */
+
+vitrine.querySelectorAll('img').forEach(img => {
+  const ready = () => {
+    if (
+      img.naturalWidth &&
+      img.parentElement.classList.contains('vphoto')
+    ) {
+      img.parentElement.classList.add(
+        'photo-ready'
+      );
     }
+  };
 
-    element.childNodes.forEach(child => walk(child, null));
-    return units;
-}
+  img.addEventListener(
+    'load',
+    ready,
+    { once: true }
+  );
 
-function escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+  img.addEventListener(
+    'error',
+    () => img.remove(),
+    { once: true }
+  );
 
-// Reconstrói o HTML apenas com os primeiros "count" caracteres já
-// digitados, reagrupando caracteres consecutivos da mesma classe
-// dentro do mesmo <span>, para restaurar o destaque em neon.
-function renderTypedUnits(units, count) {
-    let html = '';
-    let i = 0;
-    while (i < count) {
-        const cls = units[i].cls;
-        let chunk = '';
-        while (i < count && units[i].cls === cls) {
-            chunk += escapeHtml(units[i].ch);
-            i++;
-        }
-        html += cls ? `<span class="${cls}">${chunk}</span>` : chunk;
+  if (img.complete) {
+    if (img.naturalWidth) {
+      ready();
+    } else {
+      img.remove();
     }
-    return html;
-}
+  }
+});
 
-function typeElement(element) {
-    const units = parseTypedUnits(element);
-    const total = units.length;
-    if (!total) return;
+vgo(0);
+vsync();
 
-    element.innerHTML = '<span class="type-text"></span><span class="type-caret"></span>';
-    const textEl = element.querySelector('.type-text');
-    const caret = element.querySelector('.type-caret');
 
-    let i = 0;
-    const caretBlink = setInterval(() => {
-        caret.style.opacity = caret.style.opacity === '0' ? '1' : '0';
-    }, 500);
+/* ===== ANO DO RODAPÉ ===== */
 
-    const typer = setInterval(() => {
-        i++;
-        textEl.innerHTML = renderTypedUnits(units, i);
-
-        if (i >= total) {
-            clearInterval(typer);
-            // Deixa o cursor piscando um pouco mais (efeito terminal)
-            // e então some suavemente, sem ficar piscando para sempre.
-            setTimeout(() => {
-                clearInterval(caretBlink);
-                caret.style.transition = 'opacity 0.4s ease';
-                caret.style.opacity = '0';
-                setTimeout(() => caret.remove(), 400);
-            }, 1200);
-        }
-    }, 45);
-}
-
-/* ==========================================================
-   5. EFEITO TILT 3D INTERATIVO NOS CARDS
-   ========================================================== */
-function init3dTiltEffect() {
-    // Em telas de toque não existe "mousemove" contínuo, então o efeito
-    // é ignorado para não deixar os cards "travados" em ângulo após o toque.
-    const isTouch = window.matchMedia('(pointer: coarse)').matches;
-    if (isTouch) return;
-
-    const cards = document.querySelectorAll('.card, .hero-card-preview');
-
-    cards.forEach(card => {
-        card.addEventListener('mousemove', (e) => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-
-            const rotateX = (y - centerY) / 10;
-            const rotateY = (centerX - x) / 10;
-
-            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-5px)`;
-        });
-
-        card.addEventListener('mouseleave', () => {
-            card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
-            card.style.transition = 'transform 0.5s ease';
-        });
-
-        card.addEventListener('mouseenter', () => {
-            card.style.transition = 'none';
-        });
-    });
-}
-
-/* ==========================================================
-   6. ANIMAÇÃO DE REVELAÇÃO AO ROLAR A PÁGINA (SCROLL REVEAL)
-   ==========================================================
-
-   CORREÇÃO APLICADA:
-   Antes, o efeito era aplicado em "section, .card" ao mesmo tempo.
-   Isso deixava a <section> inteira com opacity: 0 até que 15% da
-   PRÓPRIA seção estivesse visível na tela. No celular, o grid de
-   produtos vira 1 coluna e a seção fica extremamente alta (muitos
-   cards empilhados), então esses 15% quase nunca eram atingidos —
-   e como os .card ficam DENTRO dessa section com opacity 0, eles
-   nunca apareciam, mesmo que o observer já tivesse "revelado" cada
-   card individualmente. Resultado: página parecia vazia no mobile.
-
-   Agora o efeito é aplicado somente nos elementos de conteúdo
-   (.card), nunca na <section> como um todo. Também paramos de
-   observar o elemento assim que ele aparece (unobserve), o que
-   evita reprocessamento desnecessário ao rolar a página.
-   ========================================================== */
-function initScrollReveal() {
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-                observer.unobserve(entry.target);
-            }
-        });
-    }, observerOptions);
-
-    // Removido "section" da seleção — só os cards recebem o fade/translate.
-    const revealElements = document.querySelectorAll('.card');
-    revealElements.forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(40px)';
-        el.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
-        observer.observe(el);
-    });
-}
-
-/* ==========================================================
-   7. NAVBAR REATIVA AO SCROLL
-   ========================================================== */
-function initNavbarScroll() {
-    const navbar = document.querySelector('.navbar');
-    if (!navbar) return;
-
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 50) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
-        }
-    });
-}
-
-/* ==========================================================
-   8. BARRA DE PROGRESSO NEON (SCROLL)
-   ========================================================== */
-function initScrollProgressBar() {
-    const progressBar = document.getElementById('scroll-progress');
-    if (!progressBar) return;
-
-    window.addEventListener('scroll', () => {
-        const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-        const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-        const scrolled = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
-
-        progressBar.style.width = scrolled + '%';
-    });
-}
-
-/* ==========================================================
-   9. ANO ATUAL NO FOOTER
-   ========================================================== */
-function initFooterYear() {
-    const yearSpan = document.getElementById('current-year');
-    if (yearSpan) {
-        yearSpan.textContent = new Date().getFullYear();
-    }
-}
-
-/* ==========================================================
-   10. CONTADORES ANIMADOS DA BARRA DE CONFIANÇA (AVALIAÇÕES)
-   ========================================================== */
-function initTrustCounters() {
-    const counters = document.querySelectorAll('.trust-bar .counter');
-    if (!counters.length) return;
-
-    const animateCounter = (el) => {
-        const target = parseFloat(el.dataset.count);
-        const decimals = parseInt(el.dataset.decimals || '0', 10);
-        const duration = 1400;
-        const startTime = performance.now();
-
-        function tick(now) {
-            const progress = Math.min((now - startTime) / duration, 1);
-            // easeOutQuad para uma desaceleração suave e "high-tech"
-            const eased = 1 - (1 - progress) * (1 - progress);
-            const value = target * eased;
-            el.textContent = value.toFixed(decimals);
-
-            if (progress < 1) {
-                requestAnimationFrame(tick);
-            } else {
-                el.textContent = target.toFixed(decimals);
-            }
-        }
-
-        requestAnimationFrame(tick);
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                animateCounter(entry.target);
-                observer.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.6 });
-
-    counters.forEach(counter => observer.observe(counter));
-}
-
-/* ==========================================================
-   11. BOTÃO "GOSTEI" NOS CARDS DE AVALIAÇÃO (FEEDBACK VISUAL)
-   ========================================================== */
-function initReviewLikeButtons() {
-    document.querySelectorAll('.review-action-btn').forEach(btn => {
-        const icon = btn.querySelector('i');
-        const isLike = icon && icon.dataset.lucide === 'thumbs-up';
-        if (!isLike) return;
-
-        btn.addEventListener('click', () => {
-            btn.classList.toggle('is-liked');
-            btn.style.color = btn.classList.contains('is-liked') ? 'var(--neon-green)' : '';
-        });
-    });
-}
-
-/* ==========================================================
-   12. FILTRO DE PRODUTOS POR CATEGORIA
-   ==========================================================
-
-   Cada botão da barra ".product-filters" tem um atributo
-   data-filter ("todos", "scooter", "moto", "triciclo") e cada
-   card de produto tem um atributo data-category correspondente.
-
-   Ao clicar num filtro:
-   - marca o botão clicado como .active (visual) e aria-selected
-   - esconde (hidden) todo card cujo data-category não bate com
-     o filtro escolhido, exceto quando o filtro é "todos"
-
-   Usar o atributo "hidden" em vez de manipular display via JS
-   deixa a regra de CSS "#produtos .card[hidden]" no controle do
-   layout, e funciona tanto no grid de 1 coluna (desktop) quanto
-   no grid de 2 colunas (mobile), sem gerar espaços vazios.
-   ========================================================== */
-function initProductFilter() {
-    const filterBar = document.querySelector('.product-filters');
-    if (!filterBar) return;
-
-    const chips = Array.from(filterBar.querySelectorAll('.filter-chip'));
-    const cards = Array.from(document.querySelectorAll('#produtos .card[data-category]'));
-
-    function applyFilter(filter) {
-        const visibleCards = [];
-
-        cards.forEach(card => {
-            const matches = filter === 'todos' || card.dataset.category === filter;
-            card.hidden = !matches;
-            if (matches) visibleCards.push(card);
-        });
-
-        // No grid mobile o número de colunas é fixo em 2 (ver CSS). Se o
-        // filtro deixar só 1 card visível (ex.: "Triciclos & Cargo", que
-        // hoje tem um único produto), esse card ficaria preso na 1ª coluna
-        // ocupando só metade da largura da tela, com a outra metade vazia
-        // — dando a impressão de estar cortado. Por isso, quando sobra
-        // exatamente 1 resultado, ele passa a ocupar a linha inteira.
-        cards.forEach(card => card.classList.remove('span-full'));
-        if (visibleCards.length === 1) {
-            visibleCards[0].classList.add('span-full');
-        }
-
-        // Garantia extra: se o card ainda não tinha sido "revelado" pelo
-        // scroll-reveal (observer nunca chegou a interceptar esse elemento
-        // porque ele estava fora da tela), força a exibição completa assim
-        // que ele aparece via filtro, para não parecer cortado/transparente.
-        visibleCards.forEach(card => {
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-        });
-    }
-
-    chips.forEach(chip => {
-        chip.addEventListener('click', () => {
-            chips.forEach(c => {
-                c.classList.remove('active');
-                c.setAttribute('aria-selected', 'false');
-            });
-
-            chip.classList.add('active');
-            chip.setAttribute('aria-selected', 'true');
-
-            applyFilter(chip.dataset.filter);
-        });
-    });
-}
+$('#yr').textContent = new Date().getFullYear();
